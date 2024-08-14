@@ -38,6 +38,8 @@ jobs:
     needs: detect-changes
     if: ${{ needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.manual == 'true' }}
     runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.test-check.outputs.test }}
     defaults:
       run:
         shell: bash
@@ -77,13 +79,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Docker Hub 이미지 푸시
-      - name: Docker Hub push
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/momo-api
+#      # Docker Hub 이미지 푸시
+#      - name: Docker Hub push
+#        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/momo-api
 
   be-depoly:
     needs: be-build
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, ARM64, dev]
     defaults:
       run:
         shell: bash
@@ -96,27 +98,33 @@ jobs:
           repository: woowacourse-teams/2024-momo-config
           token: ${{ secrets.PAT_TOKEN }}
 
-      - name: copy security config
-        run: mkdir -p $HOME/security; \cp -f *.yml ~/security
+      - id: test-check
+        run: echo "TEST_DEPLOY_SUCCESS"
+#
+#      - name: copy security config
+#        run: mkdir -p $HOME/security; \cp -f *.yml ~/security
+#
 
-      # 1. 최신 도커 이미지 pull
-      - name: docker pull
-        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/momo-api
 
-      # 2. 기존 컨테이너 중지
-      - name: docker stop container
-        run: docker stop $(docker ps -q) 2>/dev/null || true
 
-      # 3. 도커 컨테이너 실행
-      - name: docker run new container
-        run: >-
-          docker run --name momo-api
-          --rm -d -p 8080:8080
-          --volume=$HOME/security:/momo/security:ro
-          --volume=$HOME/logs:/momo/logs
-          --env SPRING_PROFILE=dev
-          ${{ secrets.DOCKERHUB_USERNAME }}/momo-api
-
-      # 4. 미사용 이미지를 정리
-      - name: delete old docker image
-        run: docker system prune -f
+#      # 1. 최신 도커 이미지 pull
+#      - name: docker pull
+#        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/momo-api
+#
+#      # 2. 기존 컨테이너 중지
+#      - name: docker stop container
+#        run: docker stop $(docker ps -q) 2>/dev/null || true
+#
+#      # 3. 도커 컨테이너 실행
+#      - name: docker run new container
+#        run: >-
+#          docker run --name momo-api
+#          --rm -d -p 8080:8080
+#          --volume=$HOME/security:/momo/security:ro
+#          --volume=$HOME/logs:/momo/logs
+#          --env SPRING_PROFILE=dev
+#          ${{ secrets.DOCKERHUB_USERNAME }}/momo-api
+#
+#      # 4. 미사용 이미지를 정리
+#      - name: delete old docker image
+#        run: docker system prune -f
